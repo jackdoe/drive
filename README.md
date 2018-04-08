@@ -1,5 +1,5 @@
 # drive
-we are starting follow the line competition, since we dont have robots
+we are starting follow the line competition in [HackYourFuture](http://www.hackyourfuture.net/), since we dont have robots
 yet, we can start writing the code that gets the path from the camera
 
 ![outputExample](outputExample.png)
