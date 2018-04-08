@@ -2,7 +2,7 @@
 we are starting follow the line competition, since we dont have robots
 yet, we can start writing the code that gets the path from the camera
 
-![exampleOutput](exampleOutput.png)
+![outputExample](outputExample.png)
 
 # first steps
 
