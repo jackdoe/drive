@@ -108,14 +108,10 @@ var extractRoute = function (image, pixelsToMeter) {
         var centerBlackPosition = Math.round(sum / blackPixels);
         addRoute(centerBlackPosition, y)
 
-        // using blue to check how good our pixel to meter calibration is
-        var leftRightColorMark = ((pixelsToMeter * LINE_WIDTH_METERS) / 2) * 0.9;
-        var color = Jimp.rgbaToInt(0, 0, 255, 255);
-        if (y < height - 10) {
-            var leftRightColorMark = 10
-            var color = Jimp.rgbaToInt(255, 0, 0, 255);
 
-        }
+        var leftRightColorMark = 10
+        var color = Jimp.rgbaToInt(255, 0, 0, 255);
+
         for (var i = centerBlackPosition - leftRightColorMark; i < centerBlackPosition + leftRightColorMark; i++) {
             if (i < 0) 
                 continue;
@@ -144,25 +140,26 @@ var extractRoute = function (image, pixelsToMeter) {
             : 0, j % 2
             ? 0
             : 255, 255);
+
+            var line
         if (route.prev) {
-            var line = {
+            line = {
                 x0: route.prev.center,
                 y0: Math.round((route.prev.to + route.prev.from) / 2),
                 x1: route.center,
                 y1: Math.round((route.to + route.from) / 2)
             }
-            out.push(line)
-            bline(image, color, line.x0, line.y0, line.x1, line.y1)
         } else {
-            var line = {
+            line = {
                 x0: route.center,
                 y0: route.from,
                 x1: route.center,
                 y1: Math.round((route.to + route.from) / 2)
             }
-            out.push(line)
-            bline(image, color, line.x0, line.y0, line.x1, line.y1)
         }
+        line.distanceMeters = Math.sqrt(Math.pow(Math.abs(line.x0 - line.x1),2) + Math.pow(Math.abs(line.y0 - line.y1),2)) / pixelsToMeter;
+        out.push(line)
+        bline(image, color, line.x0, line.y0, line.x1, line.y1)
     }
     console.log(out)
     return out;
