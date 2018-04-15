@@ -31,9 +31,9 @@ var calibrate = function (image) {
     for (var x = 0; x < width; x++) {
         var pixel = Jimp.intToRGBA(image.getPixelColor(x, y))
         if (pixel.r == 0 && pixel.g == 0 && pixel.b == 0) {
-            if (firstBlackPixel == 0 || firstBlackPixel > x)
+            if (firstBlackPixel == 0 || firstBlackPixel > x) 
                 firstBlackPixel = x
-            if (lastBlackPixel < x)
+            if (lastBlackPixel < x) 
                 lastBlackPixel = x
         }
     }
@@ -41,9 +41,9 @@ var calibrate = function (image) {
     return pixelToMeter
 }
 
-// https://stackoverflow.com/questions/25277023/complete-solution-for-drawing-1-pixel-line-on-html5-canvas
-// http://jsfiddle.net/m1erickson/3j7hpng0/
-// Refer to: http://rosettacode.org/wiki/Bitmap/Bresenham's_line_algorithm#JavaScript
+// https://stackoverflow.com/questions/25277023/complete-solution-for-drawing-1-
+// pixel-line-on-html5-canvas http://jsfiddle.net/m1erickson/3j7hpng0/ Refer to:
+// http://rosettacode.org/wiki/Bitmap/Bresenham's_line_algorithm#JavaScript
 var bline = function bline(image, color, x0, y0, x1, y1) {
     var dx = Math.abs(x1 - x0),
         sx = x0 < x1
@@ -58,7 +58,7 @@ var bline = function bline(image, color, x0, y0, x1, y1) {
         : -dy) / 2;
     while (true) {
         image.setPixelColor(color, x0, y0)
-        if (x0 === x1 && y0 === y1)
+        if (x0 === x1 && y0 === y1) 
             break;
         var e2 = err;
         if (e2 > -dx) {
@@ -136,6 +136,7 @@ var extractRoute = function (image, pixelsToMeter) {
     }
 
     var j = 0
+    var out = []
     for (var route of routes) {
         j++;
         var color = Jimp.rgbaToInt(0, j % 2
@@ -144,13 +145,27 @@ var extractRoute = function (image, pixelsToMeter) {
             ? 0
             : 255, 255);
         if (route.prev) {
-            bline(image, color, route.prev.center, route.prev.to, route.center, route.to)
+            var line = {
+                x0: route.prev.center,
+                y0: Math.round((route.prev.to + route.prev.from) / 2),
+                x1: route.center,
+                y1: Math.round((route.to + route.from) / 2)
+            }
+            out.push(line)
+            bline(image, color, line.x0, line.y0, line.x1, line.y1)
         } else {
-            bline(image, color, route.center, route.from, route.center, route.to)
+            var line = {
+                x0: route.center,
+                y0: route.from,
+                x1: route.center,
+                y1: Math.round((route.to + route.from) / 2)
+            }
+            out.push(line)
+            bline(image, color, line.x0, line.y0, line.x1, line.y1)
         }
     }
-
-    return routes;
+    console.log(out)
+    return out;
 }
 
 /*
