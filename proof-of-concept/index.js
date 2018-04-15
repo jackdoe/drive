@@ -25,7 +25,7 @@ var calibrate = function (image) {
     var width = image.bitmap.width;
     var height = image.bitmap.height;
     var heightMap = {}
-    var y = height;
+    var y = height - 1;
     var firstBlackPixel = 0;
     var lastBlackPixel = 0;
     for (var x = 0; x < width; x++) {
@@ -41,10 +41,60 @@ var calibrate = function (image) {
     return pixelToMeter
 }
 
-var cleanup = function (image, pixelsToMeter) {
+// https://stackoverflow.com/questions/25277023/complete-solution-for-drawing-1-pixel-line-on-html5-canvas
+// http://jsfiddle.net/m1erickson/3j7hpng0/
+// Refer to: http://rosettacode.org/wiki/Bitmap/Bresenham's_line_algorithm#JavaScript
+var bline = function bline(image, color, x0, y0, x1, y1) {
+    var dx = Math.abs(x1 - x0),
+        sx = x0 < x1
+            ? 1
+            : -1;
+    var dy = Math.abs(y1 - y0),
+        sy = y0 < y1
+            ? 1
+            : -1;
+    var err = (dx > dy
+        ? dx
+        : -dy) / 2;
+    while (true) {
+        image.setPixelColor(color, x0, y0)
+        if (x0 === x1 && y0 === y1)
+            break;
+        var e2 = err;
+        if (e2 > -dx) {
+            err -= dy;
+            x0 += sx;
+        }
+        if (e2 < dy) {
+            err += dx;
+            y0 += sy;
+        }
+    }
+}
+
+var extractRoute = function (image, pixelsToMeter) {
     var width = image.bitmap.width;
     var height = image.bitmap.height;
-    for (var y = 0; y < height; y++) {
+
+    var routes = []
+    var addRoute = function (currentCenter, y) {
+        if (routes.length == 0) {
+            routes.push({prev: undefined, center: currentCenter, from: y, to: undefined})
+        } else {
+            var lastRoute = routes[routes.length - 1];
+            if (!lastRoute.to) {
+                lastRoute.to = y
+            } else {
+                if (Math.abs(lastRoute.center - currentCenter) > (pixelsToMeter / 200)) {
+                    routes.push({prev: lastRoute, center: currentCenter, from: y, to: undefined})
+                } else {
+                    lastRoute.to = y;
+                }
+            }
+        }
+    }
+
+    for (var y = height - 1; y >= 0; y--) {
         var sum = 0;
         var blackPixels = 0;
 
@@ -56,6 +106,7 @@ var cleanup = function (image, pixelsToMeter) {
             }
         }
         var centerBlackPosition = Math.round(sum / blackPixels);
+        addRoute(centerBlackPosition, y)
 
         // using blue to check how good our pixel to meter calibration is
         var leftRightColorMark = ((pixelsToMeter * LINE_WIDTH_METERS) / 2) * 0.9;
@@ -66,13 +117,40 @@ var cleanup = function (image, pixelsToMeter) {
 
         }
         for (var i = centerBlackPosition - leftRightColorMark; i < centerBlackPosition + leftRightColorMark; i++) {
-            if (i < 0)
+            if (i < 0) 
                 continue;
-            if (i > width)
+            if (i > width) 
                 continue;
             image.setPixelColor(color, i, y)
         }
     }
+
+    for (var route of routes) {
+        var color = Jimp.rgbaToInt(255, 255, 255, 255);
+        // because y grows in reverse, 'to' is smaller than 'from'
+        for (var y = route.to; y < route.from; y++) {
+            for (var i = route.center - 2; i < route.center + 2; i++) {
+                image.setPixelColor(color, i, y)
+            }
+        }
+    }
+
+    var j = 0
+    for (var route of routes) {
+        j++;
+        var color = Jimp.rgbaToInt(0, j % 2
+            ? 255
+            : 0, j % 2
+            ? 0
+            : 255, 255);
+        if (route.prev) {
+            bline(image, color, route.prev.center, route.prev.to, route.center, route.to)
+        } else {
+            bline(image, color, route.center, route.from, route.center, route.to)
+        }
+    }
+
+    return routes;
 }
 
 /*
@@ -103,7 +181,7 @@ Jimp.read(process.argv[2] || "../data/picture-from-iphone-45-degree.png", functi
     contrast(image)
 
     var pixelsToMeter = calibrate(image)
-    cleanup(image, pixelsToMeter)
+    extractRoute(image, pixelsToMeter)
 
     image.resize(Jimp.AUTO, originalWidth)
     image.write("processed.png")
