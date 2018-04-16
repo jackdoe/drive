@@ -42,8 +42,8 @@ var calibrate = function (image) {
 }
 
 // https://stackoverflow.com/questions/25277023/complete-solution-for-drawing-1-
-// pixel-line-on-html5-canvas http://jsfiddle.net/m1erickson/3j7hpng0/ Refer to:
-// http://rosettacode.org/wiki/Bitmap/Bresenham's_line_algorithm#JavaScript
+// pixel-line-on-html5-canvas http://jsfiddle.net/m1erickson/3j7hpng0/ Refer
+// to: http://rosettacode.org/wiki/Bitmap/Bresenham's_line_algorithm#JavaScript
 var bline = function bline(image, color, x0, y0, x1, y1) {
     var dx = Math.abs(x1 - x0),
         sx = x0 < x1
@@ -108,7 +108,6 @@ var extractRoute = function (image, pixelsToMeter) {
         var centerBlackPosition = Math.round(sum / blackPixels);
         addRoute(centerBlackPosition, y)
 
-
         var leftRightColorMark = 10
         var color = Jimp.rgbaToInt(255, 0, 0, 255);
 
@@ -141,7 +140,7 @@ var extractRoute = function (image, pixelsToMeter) {
             ? 0
             : 255, 255);
 
-            var line
+        var line
         if (route.prev) {
             line = {
                 x0: route.prev.center,
@@ -157,7 +156,7 @@ var extractRoute = function (image, pixelsToMeter) {
                 y1: Math.round((route.to + route.from) / 2)
             }
         }
-        line.distanceMeters = Math.sqrt(Math.pow(Math.abs(line.x0 - line.x1),2) + Math.pow(Math.abs(line.y0 - line.y1),2)) / pixelsToMeter;
+        line.distanceMeters = Math.sqrt(Math.pow(Math.abs(line.x0 - line.x1), 2) + Math.pow(Math.abs(line.y0 - line.y1), 2)) / pixelsToMeter;
         out.push(line)
         bline(image, color, line.x0, line.y0, line.x1, line.y1)
     }
@@ -193,10 +192,15 @@ Jimp.read(process.argv[2] || "../data/picture-from-iphone-45-degree.png", functi
     contrast(image)
 
     var pixelsToMeter = calibrate(image)
-    extractRoute(image, pixelsToMeter)
-
-    image.resize(Jimp.AUTO, originalWidth)
-    image.write("processed.png")
-
-    exec('open processed.png').unref()
+    var routes = extractRoute(image, pixelsToMeter)
+    Jimp
+        .loadFont(Jimp.FONT_SANS_16_WHITE)
+        .then(function (font) {
+            for (var line of routes) {
+                image.print(font, line.x0, ((line.y0 + line.y1) / 2), (line.distanceMeters * 100).toFixed(1) + "cm");
+            }
+            image.resize(Jimp.AUTO, originalWidth)
+            image.write("processed.png")
+            exec('open processed.png').unref()
+        }).catch(console.error);
 });
